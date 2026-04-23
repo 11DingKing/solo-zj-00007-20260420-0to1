@@ -25,37 +25,31 @@ router.get('/', async (req, res, next) => {
 
     const conditions = [];
     const params = [];
-    let paramIndex = 1;
 
     // 日期范围筛选
     if (startDate) {
-      conditions.push(`DATE(o.created_at) >= $${paramIndex}`);
       params.push(startDate);
-      paramIndex++;
+      conditions.push(`DATE(o.created_at) >= $${params.length}`);
     }
     if (endDate) {
-      conditions.push(`DATE(o.created_at) <= $${paramIndex}`);
       params.push(endDate);
-      paramIndex++;
+      conditions.push(`DATE(o.created_at) <= $${params.length}`);
     }
 
     // 状态筛选
     if (status) {
-      conditions.push(`o.status = $${paramIndex}`);
       params.push(status);
-      paramIndex++;
+      conditions.push(`o.status = $${params.length}`);
     }
 
     // 金额范围筛选
     if (minAmount) {
-      conditions.push(`o.total_amount >= $${paramIndex}`);
       params.push(parseFloat(minAmount));
-      paramIndex++;
+      conditions.push(`o.total_amount >= $${params.length}`);
     }
     if (maxAmount) {
-      conditions.push(`o.total_amount <= $${paramIndex}`);
       params.push(parseFloat(maxAmount));
-      paramIndex++;
+      conditions.push(`o.total_amount <= $${params.length}`);
     }
 
     const whereClause = conditions.length > 0 
@@ -76,7 +70,10 @@ router.get('/', async (req, res, next) => {
     const size = parseInt(pageSize) || 20;
     const offset = (pageNum - 1) * size;
 
-    // 查询订单数据
+    // 查询订单数据 - 添加 LIMIT 和 OFFSET 参数
+    const limitParamIndex = params.length + 1;
+    const offsetParamIndex = params.length + 2;
+
     const dataQuery = `
       SELECT 
         o.id,
@@ -89,7 +86,7 @@ router.get('/', async (req, res, next) => {
       JOIN customers c ON o.customer_id = c.id
       ${whereClause}
       ORDER BY o.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+      LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}
     `;
 
     const dataParams = [...params, size, offset];
